@@ -2,7 +2,7 @@
 import names
 import os
 import sys
-from os import listdir
+from os import listdir, rename
 from os.path import isfile, join, isdir
 import re
 import urllib.request
@@ -163,19 +163,19 @@ def isFileSynced(fileName):
     return isItemSynced('FILE', fileName)
 
 
-def waitForFileToBeSynced(context, fileName):
+def waitForFileToBeSynced(context, filePath):
     waitFor(
         lambda: isFileSynced(
-            sanitizePath(context.userData['currentUserSyncPath'] + fileName)
+            sanitizePath(filePath)
         ),
         context.userData['clientSyncTimeout'] * 1000,
     )
 
 
-def waitForFolderToBeSynced(context, folderName):
+def waitForFolderToBeSynced(context, folderPath):
     waitFor(
         lambda: isFolderSynced(
-            sanitizePath(context.userData['currentUserSyncPath'] + folderName)
+            sanitizePath(folderPath)
         ),
         context.userData['clientSyncTimeout'] * 1000,
     )
@@ -342,17 +342,20 @@ def step(context):
 
 @When('the user waits for file "|any|" to be synced')
 def step(context, fileName):
-    waitForFileToBeSynced(context, fileName)
+    resource = join(context.userData['currentUserSyncPath'], fileName)
+    waitForFileToBeSynced(context, resource)
 
 
 @When('the user waits for folder "|any|" to be synced')
 def step(context, folderName):
-    waitForFolderToBeSynced(context, folderName)
+    resource = join(context.userData['currentUserSyncPath'], folderName)
+    waitForFolderToBeSynced(context, resource)
 
 
 @Given('the user has waited for file "|any|" to be synced')
 def step(context, fileName):
-    waitForFileToBeSynced(context, fileName)
+    resource = join(context.userData['currentUserSyncPath'], fileName)
+    waitForFileToBeSynced(context, resource)
 
 
 @Given(
@@ -364,6 +367,13 @@ def step(context, username, filename):
 
 @When(
     'user "|any|" creates a file "|any|" with the following content inside the sync folder'
+)
+def step(context, username, filename):
+    createFile(context, filename, username)
+
+
+@When(
+    'user "|any|" tries to create a file "|any|" with the following content inside the sync folder'
 )
 def step(context, username, filename):
     createFile(context, filename, username)
@@ -386,6 +396,11 @@ def step(context, username, foldername):
     createFolder(context, foldername, username)
 
 
+@When('user "|any|" tries to create a folder "|any|" inside the sync folder')
+def step(context, username, foldername):
+    createFolder(context, foldername, username)
+
+
 @Given('user "|any|" has created a folder "|any|" inside the sync folder')
 def step(context, username, foldername):
     createFolder(context, foldername, username)
@@ -401,11 +416,37 @@ def createFolder(context, foldername, username=None):
     os.makedirs(path)
 
 
+def renameFileFolder(context, source, destination):
+    source = join(context.userData['currentUserSyncPath'], source)
+    destination = join(context.userData['currentUserSyncPath'], destination)
+    rename(source, destination)
+
+
 @When('the user copies the folder "|any|" to "|any|"')
 def step(context, sourceFolder, destinationFolder):
     source_dir = join(context.userData['currentUserSyncPath'], sourceFolder)
     destination_dir = join(context.userData['currentUserSyncPath'], destinationFolder)
     shutil.copytree(source_dir, destination_dir)
+
+
+@When('the user renames a folder "|any|" to "|any|"')
+def step(context, sourceFolder, destinationFolder):
+    renameFileFolder(context, sourceFolder, destinationFolder)
+
+
+@When('the user tries to rename a folder "|any|" to "|any|"')
+def step(context, sourceFolder, destinationFolder):
+    renameFileFolder(context, sourceFolder, destinationFolder)
+
+
+@When('the user renames a file "|any|" to "|any|"')
+def step(context, sourceFile, destinationFile):
+    renameFileFolder(context, sourceFile, destinationFile)
+
+
+@When('the user tries to rename a file "|any|" to "|any|"')
+def step(context, sourceFile, destinationFile):
+    renameFileFolder(context, sourceFile, destinationFile)
 
 
 @Given(r"^(.*) on the server (.*)$", regexp=True)
@@ -691,6 +732,27 @@ def step(context, resource, password):
     createPublicLinkShare(context, resource, password)
 
 
+@When(
+    'the user creates a new public link for file "|any|" with default expiration date using the client-UI'
+)
+def step(context, resource):
+    createPublicLinkShare(context, resource, expireDate='default')
+
+
+@Then('the expiration date of the last public link of file "|any|" should be "|any|"')
+def step(context, resource, expiryDate):
+    openSharingDialog(context, resource)
+    publicLinkDialog = PublicLinkDialog()
+    publicLinkDialog.openPublicLinkDialog()
+
+    if expiryDate.strip("%") == "default":
+        expiryDate = PublicLinkDialog.getDefaultExpiryDate()
+
+    publicLinkDialog.verifyExpirationDate(expiryDate)
+
+    shareItem = SharingDialog()
+    shareItem.closeSharingDialog()
+
 def setExpirationDateWithVerification(resource, publicLinkName, expireDate):
     publicLinkDialog = PublicLinkDialog()
     publicLinkDialog.verifyResource(resource)
@@ -935,6 +997,7 @@ def step(context, resource, group):
 @When('the user overwrites the file "|any|" with content "|any|"')
 def step(context, resource, content):
     print("starting file overwrite")
+    resource = join(context.userData['currentUserSyncPath'], resource)
     waitForFileToBeSynced(context, resource)
     waitForFolderToBeSynced(context, '/')
 
@@ -945,7 +1008,7 @@ def step(context, resource, content):
 
     snooze(5)
 
-    f = open(context.userData['currentUserSyncPath'] + resource, "w")
+    f = open(resource, "w")
     f.write(content)
     f.close()
 
@@ -953,19 +1016,30 @@ def step(context, resource, content):
     waitForFileToBeSynced(context, resource)
 
 
-@When('the user tries to overwrite the file "|any|" with content "|any|"')
-def step(context, resource, content):
+def tryToOverwriteFile(context, resource, content):
     waitForFileToBeSynced(context, resource)
     waitForFolderToBeSynced(context, '/')
 
     try:
-        f = open(context.userData['currentUserSyncPath'] + resource, "w")
+        f = open(resource, "w")
         f.write(content)
         f.close()
     except:
         pass
 
     waitForFileToBeSynced(context, resource)
+
+
+@When('the user tries to overwrite the file "|any|" with content "|any|"')
+def step(context, resource, content):
+    resource = context.userData['currentUserSyncPath'] + resource
+    tryToOverwriteFile(context, resource, content)
+
+
+@When('user "|any|" tries to overwrite the file "|any|" with content "|any|"')
+def step(context, user, resource, content):
+    resource = getResourcePath(context, resource, user)
+    tryToOverwriteFile(context, resource, content)
 
 
 def enableVFSSupport(vfsBtnText):
@@ -1047,8 +1121,7 @@ def step(context, errorMsg):
     test.compare(str(waitForObjectExists(newAccount.ERROR_LABEL).text), errorMsg)
 
 
-@When(r'the user deletes the (file|folder) "([^"]*)"', regexp=True)
-def step(context, itemType, resource):
+def deleteResource(context, itemType, resource):
     resourcePath = sanitizePath(context.userData['currentUserSyncPath'] + resource)
     if itemType == 'file':
         os.remove(resourcePath)
@@ -1056,6 +1129,16 @@ def step(context, itemType, resource):
         shutil.rmtree(resourcePath)
     else:
         raise Exception("No such item type for resource")
+
+
+@When(r'the user deletes the (file|folder) "([^"]*)"', regexp=True)
+def step(context, itemType, resource):
+    deleteResource(context, itemType, resource)
+
+
+@When(r'the user tries to delete the (file|folder) "([^"]*)"', regexp=True)
+def step(context, itemType, resource):
+    deleteResource(context, itemType, resource)
 
 
 @When(
