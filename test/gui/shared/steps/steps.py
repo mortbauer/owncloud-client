@@ -165,18 +165,14 @@ def isFileSynced(fileName):
 
 def waitForFileToBeSynced(context, filePath):
     waitFor(
-        lambda: isFileSynced(
-            sanitizePath(filePath)
-        ),
+        lambda: isFileSynced(sanitizePath(filePath)),
         context.userData['clientSyncTimeout'] * 1000,
     )
 
 
 def waitForFolderToBeSynced(context, folderPath):
     waitFor(
-        lambda: isFolderSynced(
-            sanitizePath(folderPath)
-        ),
+        lambda: isFolderSynced(sanitizePath(folderPath)),
         context.userData['clientSyncTimeout'] * 1000,
     )
 
@@ -752,6 +748,7 @@ def step(context, resource, expiryDate):
 
     shareItem = SharingDialog()
     shareItem.closeSharingDialog()
+
 
 def setExpirationDateWithVerification(resource, publicLinkName, expireDate):
     publicLinkDialog = PublicLinkDialog()

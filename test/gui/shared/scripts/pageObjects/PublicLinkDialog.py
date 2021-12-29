@@ -71,7 +71,7 @@ class PublicLinkDialog:
         "type": "QRadioButton",
         "visible": 1,
     }
-    
+
     # to store current default public link expiry date
     defaultExpiryDate = ''
 
@@ -145,7 +145,9 @@ class PublicLinkDialog:
     @staticmethod
     def setDefaultExpiryDate(defaultDate):
         defaultDate = datetime.strptime(defaultDate, '%m/%d/%y')
-        PublicLinkDialog.defaultExpiryDate = f"{defaultDate.year}-{defaultDate.month}-{defaultDate.day}"
+        PublicLinkDialog.defaultExpiryDate = (
+            f"{defaultDate.year}-{defaultDate.month}-{defaultDate.day}"
+        )
 
     @staticmethod
     def getDefaultExpiryDate():
@@ -173,17 +175,23 @@ class PublicLinkDialog:
             squish.nativeType(expYear)
             squish.nativeType("<Return>")
 
-            actualDate = str(squish.waitForObjectExists(self.EXPIRATION_DATE_FIELD).displayText)
+            actualDate = str(
+                squish.waitForObjectExists(self.EXPIRATION_DATE_FIELD).displayText
+            )
             expectedDate = f"{expDate.month}/{expDate.day}/{expYear}"
             if not actualDate == expectedDate:
                 # retry with workaround
-                self.setExpirationDateWithWorkaround(expYear, expDate.month, expDate.day)
+                self.setExpirationDateWithWorkaround(
+                    expYear, expDate.month, expDate.day
+                )
 
             squish.waitFor(
                 lambda: (test.vp("publicLinkExpirationProgressIndicatorInvisible"))
             )
         else:
-            defaultDate = str(squish.waitForObjectExists(self.EXPIRATION_DATE_FIELD).displayText)
+            defaultDate = str(
+                squish.waitForObjectExists(self.EXPIRATION_DATE_FIELD).displayText
+            )
             PublicLinkDialog.setDefaultExpiryDate(defaultDate)
 
     # This workaround is needed because the above function 'setExpirationDate'
