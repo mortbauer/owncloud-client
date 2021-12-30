@@ -215,11 +215,11 @@ Feature: Sharing
         And user "Alice" has shared folder "Parent" on the server with user "Brian" with "read" permissions
         And user "Alice" has shared file "textfile.txt" on the server with user "Brian" with "read" permissions
         And user "Brian" has set up a client with default settings
-        When the user tries to overwrite the file "Parent/textfile.txt" with content "overwrite file insied a folder"
+        When the user tries to overwrite the file "Parent/textfile.txt" with content "overwrite file inside a folder"
         And the user tries to overwrite the file "textfile.txt" with content "overwrite file in the root"
-        Then as "Brian" the file "Parent/textfile.txt" on the server should have the content "file insied a folder"
+        Then as "Brian" the file "Parent/textfile.txt" on the server should have the content "file inside a folder"
         And as "Brian" the file "textfile.txt" on the server should have the content "file in the root"
-        And as "Alice" the file "Parent/textfile.txt" on the server should have the content "file insied a folder"
+        And as "Alice" the file "Parent/textfile.txt" on the server should have the content "file inside a folder"
         And as "Alice" the file "textfile.txt" on the server should have the content "file in the root"
 
 
@@ -305,11 +305,11 @@ Feature: Sharing
         And as "Brian" file "textfile.txt" should not exist on the server
         And as "Brian" folder "PARENT" should exist on the server
         And as "Brian" file "lorem.txt" should exist on the server
-        # Alice's files are not updated
-        # And as "Alice" folder "FOLDER" should not exist on the server
-        # And as "Alice" file "textfile.txt" should not exist on the server
-        # And as "Alice" folder "PARENT" should exist on the server
-        # And as "Alice" file "lorem.txt" should exist on the server
+        # File/folder will not change for Alice
+        And as "Alice" folder "FOLDER" should exist on the server
+        And as "Alice" file "textfile.txt" should exist on the server
+        And as "Alice" folder "PARENT" should not exist on the server
+        And as "Alice" file "lorem.txt" should not exist on the server
 
 
     Scenario: sharee tries to rename the shared file and folder without permissions
@@ -323,15 +323,15 @@ Feature: Sharing
         And the user tries to rename a file "textfile.txt" to "lorem.txt"
         And the user tries to rename a folder "FOLDER" to "PARENT"
         And the user waits for the files to sync
-        # Brian can rename files and folders
-        # Then as "Brian" folder "FOLDER" should exist on the server
-        # And as "Brian" file "textfile.txt" should exist on the server
-        # And as "Brian" folder "PARENT" should not exist on the server
-        # And as "Brian" file "lorem.txt" should not exist on the server
         Then as "Alice" folder "FOLDER" should exist on the server
         And as "Alice" file "textfile.txt" should exist on the server
         And as "Alice" folder "PARENT" should not exist on the server
         And as "Alice" file "lorem.txt" should not exist on the server
+        # Sharee can rename shared files and folders with read permission
+        And as "Brian" folder "FOLDER" should not exist on the server
+        And as "Brian" file "textfile.txt" should not exist on the server
+        And as "Brian" folder "PARENT" should exist on the server
+        And as "Brian" file "lorem.txt" should exist on the server
 
 
     Scenario: sharee deletes a file and folder shared by sharer
