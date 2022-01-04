@@ -312,28 +312,6 @@ Feature: Sharing
         And as "Alice" file "lorem.txt" should not exist on the server
 
 
-    Scenario: sharee tries to rename the shared file and folder without permissions
-        Given user "Alice" has uploaded file with content "ownCloud test text file 0" to "textfile.txt" on the server
-        And user "Alice" has created folder "FOLDER" on the server
-        And user "Brian" has been created on the server with default attributes and without skeleton files
-        And user "Alice" has shared file "textfile.txt" on the server with user "Brian" with "read" permissions
-        And user "Alice" has shared file "FOLDER" on the server with user "Brian" with "read" permissions
-        And user "Brian" has set up a client with default settings
-        When the user waits for the files to sync
-        And the user tries to rename a file "textfile.txt" to "lorem.txt"
-        And the user tries to rename a folder "FOLDER" to "PARENT"
-        And the user waits for the files to sync
-        Then as "Alice" folder "FOLDER" should exist on the server
-        And as "Alice" file "textfile.txt" should exist on the server
-        And as "Alice" folder "PARENT" should not exist on the server
-        And as "Alice" file "lorem.txt" should not exist on the server
-        # Sharee can rename shared files and folders with read permission
-        And as "Brian" folder "FOLDER" should not exist on the server
-        And as "Brian" file "textfile.txt" should not exist on the server
-        And as "Brian" folder "PARENT" should exist on the server
-        And as "Brian" file "lorem.txt" should exist on the server
-
-
     Scenario: sharee deletes a file and folder shared by sharer
         Given user "Alice" has uploaded file with content "ownCloud test text file 0" to "textfile.txt" on the server
         And user "Alice" has created folder "Folder" on the server
@@ -445,12 +423,35 @@ Feature: Sharing
         Then the text "The item is not shared with any users or groups" should be displayed in the sharing dialog
 
     @smokeTest
-    Scenario: simple sharing of a file by public link without password
+    Scenario: simple sharing of file and folder by public link without password
         Given user "Alice" has uploaded file with content "ownCloud test text file 0" to "/textfile0.txt" on the server
+        And user "Alice" has created folder "simple-folder" on the server
+        And user "Alice" has created folder "simple-folder/child" on the server
         And user "Alice" has set up a client with default settings
         When the user creates a new public link for file "textfile0.txt" without password using the client-UI
+        And the user closes the sharing dialog
         Then as user "Alice" the file "textfile0.txt" should have a public link on the server
         And the public should be able to download the file "textfile0.txt" without password from the last created public link by "Alice" on the server
+        When the user creates a new public link with permissions "Download / View" for folder "simple-folder" without password using the client-UI
+        Then as user "Alice" the folder "simple-folder" should have a public link on the server
+        And the public should be able to download the folder "simple-folder/child" without password from the last created public link by "Alice" on the server
+
+
+    Scenario Outline: simple sharing of file and folder by public link with password
+        Given user "Alice" has uploaded file with content "ownCloud test text file 0" to "/textfile0.txt" on the server
+        And user "Alice" has created folder "simple-folder" on the server
+        And user "Alice" has set up a client with default settings
+        When the user creates a new public link for file "textfile0.txt" with password "<password>" using the client-UI
+        And the user closes the sharing dialog
+        Then as user "Alice" the file "textfile0.txt" should have a public link on the server
+        And the public should be able to download the file "textfile0.txt" with password "<password>" from the last created public link by "Alice" on the server
+        When the user creates a new public link with permissions "Download / View" for folder "simple-folder" with password "<password>" using the client-UI
+        Then as user "Alice" the folder "simple-folder" should have a public link on the server
+        And the public should be able to download the folder "simple-folder" with password "<password>" from the last created public link by "Alice" on the server
+        Examples:
+            | password     |
+            | password1234 |
+            | p@$s!23      |
 
 
     Scenario: sharing of a file by public link and deleting the link
@@ -461,18 +462,6 @@ Feature: Sharing
             | name     | Public-link   |
         When the user deletes the public link for file "textfile0.txt"
         Then as user "Alice" the file "/textfile0.txt" should not have any public link on the server
-
-
-    Scenario Outline: simple sharing of a file by public link with password
-        Given user "Alice" has set up a client with default settings
-        And user "Alice" has uploaded file with content "ownCloud test text file 0" to "/textfile0.txt" on the server
-        When the user creates a new public link for file "textfile0.txt" with password "<password>" using the client-UI
-        Then as user "Alice" the file "textfile0.txt" should have a public link on the server
-        And the public should be able to download the file "textfile0.txt" with password "<password>" from the last created public link by "Alice" on the server
-        Examples:
-            | password     |
-            | password1234 |
-            | p@$s!23      |
 
 
     Scenario: sharing of a file by public link with password and changing the password
@@ -491,23 +480,31 @@ Feature: Sharing
     Scenario: simple sharing of a file by public link with default expiration date
         Given user "Alice" has set up a client with default settings
         And user "Alice" has uploaded file with content "ownCloud test text file" to "/textfile.txt" on the server
-        When the user creates a new public link for file "textfile.txt" with default expiration date using the client-UI
+        When the user creates a new public link with following settings using the client-UI:
+            | path       | textfile.txt |
+            | expireDate | %default%    |
         And the user closes the sharing dialog
         Then the expiration date of the last public link of file "textfile.txt" should be "%default%"
         And as user "Alice" the file "textfile.txt" should have a public link on the server
 
 
-    Scenario: simple sharing of a file by public link with password and expiration date
+    Scenario: simple sharing of file and folder by public link with expiration date
         Given user "Alice" has set up a client with default settings
+        And user "Alice" has created folder "FOLDER" on the server
         And user "Alice" has uploaded file with content "ownCloud test text file" to "/textfile.txt" on the server
         When the user creates a new public link with following settings using the client-UI:
             | path       | textfile.txt |
-            | password   | pass123      |
             | expireDate | 2031-10-14   |
         Then as user "Alice" the file "textfile.txt" should have a public link on the server
         And the fields of the last public link share response of user "Alice" should include on the server
             | expireDate | 2031-10-14 |
-        And the public should be able to download the file "textfile.txt" with password "pass123" from the last created public link by "Alice" on the server
+        When the user closes the sharing dialog
+        And the user creates a new public link with following settings using the client-UI:
+            | path       | FOLDER     |
+            | expireDate | 2031-12-30 |
+        Then as user "Alice" the file "FOLDER" should have a public link on the server
+        And the fields of the last public link share response of user "Alice" should include on the server
+            | expireDate | 2031-12-30 |
 
     @issue-8733
     Scenario: user changes the expiration date of an already existing public link for file using client-UI
@@ -524,7 +521,7 @@ Feature: Sharing
         Then the expiration date of the last public link of file "textfile0.txt" should be "2038-07-21"
         And the fields of the last public link share response of user "Alice" should include on the server
             | expireDate | 2038-07-21 |
-    
+
     @issue-8733
     Scenario: user changes the expiration date of an already existing public link for folder using client-UI
         Given user "Alice" has created folder "simple-folder" on the server
@@ -541,22 +538,6 @@ Feature: Sharing
         Then the expiration date of the last public link of file "simple-folder" should be "2038-07-21"
         And the fields of the last public link share response of user "Alice" on the server should include
             | expireDate | 2038-07-21 |
-
-    @smokeTest
-    Scenario: simple sharing of a folder by public link without password
-        Given user "Alice" has created folder "simple-folder" on the server
-        And user "Alice" has set up a client with default settings
-        When the user creates a new public link with permissions "Download / View" for folder "simple-folder" without password using the client-UI
-        Then as user "Alice" the folder "simple-folder" should have a public link on the server
-        And the public should be able to download the folder "lorem.txt" without password from the last created public link by "Alice" on the server
-
-
-    Scenario: simple sharing of a folder by public link with password
-        Given user "Alice" has created folder "simple-folder" on the server
-        And user "Alice" has set up a client with default settings
-        When the user creates a new public link with permissions "Download / View" for folder "simple-folder" with password "pass123" using the client-UI
-        Then as user "Alice" the folder "simple-folder" should have a public link on the server
-        And the public should be able to download the folder "lorem.txt" with password "pass123" from the last created public link by "Alice" on the server
 
 
     Scenario Outline: simple sharing of folder by public link with different roles

@@ -728,13 +728,6 @@ def step(context, resource, password):
     createPublicLinkShare(context, resource, password)
 
 
-@When(
-    'the user creates a new public link for file "|any|" with default expiration date using the client-UI'
-)
-def step(context, resource):
-    createPublicLinkShare(context, resource, expireDate='default')
-
-
 @Then('the expiration date of the last public link of file "|any|" should be "|any|"')
 def step(context, resource, expiryDate):
     openSharingDialog(context, resource)
@@ -786,11 +779,20 @@ def step(context):
     linkSettings = {}
     for row in context.table:
         linkSettings[row[0]] = row[1]
+    
+    if "path" not in linkSettings:
+        raise Exception(
+            "'path' is required but not given."
+        )
+
+    if "expireDate" in linkSettings and linkSettings['expireDate'] == "%default%":
+        linkSettings['expireDate'] = linkSettings['expireDate'].strip("%")
+
     createPublicLinkShare(
         context,
         resource=linkSettings['path'],
-        password=linkSettings['password'],
-        expireDate=linkSettings['expireDate'],
+        password=linkSettings['password'] if "password" in linkSettings else None,
+        expireDate=linkSettings['expireDate'] if "expireDate" in linkSettings else None,
     )
 
 
