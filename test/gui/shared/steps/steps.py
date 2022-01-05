@@ -372,10 +372,12 @@ def step(context, username, filename):
 def createFile(context, filename, username=None):
     fileContent = "\n".join(context.multiLineText)
     syncPath = None
+    # snooze(3)
     if username:
         syncPath = getUserSyncPath(context, username)
     else:
         syncPath = context.userData['currentUserSyncPath']
+    snooze(5)
     f = open(join(syncPath, filename), "w")
     f.write(fileContent)
     f.close()
