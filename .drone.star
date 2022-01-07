@@ -381,7 +381,7 @@ def notification(name, depends_on = [], trigger = {}):
                 "pull": "always",
                 "settings": {
                     "webhook": from_secret("slack_webhook"),
-                    "channel": "desktop-ci",
+                    "channel": "desktop-internal",
                 },
             },
         ],
